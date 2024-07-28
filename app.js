@@ -1,85 +1,99 @@
+ 
+        const express = require('express');
+        const path = require('path');
+        const fs = require('fs');
+        const { createBot, createProvider, createFlow, addKeyword } = require('@bot-whatsapp/bot');
+        const BaileysProvider = require('@bot-whatsapp/provider/baileys');
+        const MockAdapter = require('@bot-whatsapp/database/mock');
+        
+        const app = express();
+        
+        const flowSecundario = addKeyword(['2', 'siguiente']).addAnswer(['📄 Aquí tenemos el flujo secundario']);
+        
+        const flowDocs = addKeyword(['doc', 'documentacion', 'documentación']).addAnswer(
+            [
+                '📄 Aquí encontras las documentación recuerda que puedes mejorarla',
+                'https://bot-whatsapp.netlify.app/',
+                '\n*2* Para siguiente paso.',
+            ],
+            null,
+            null,
+            [flowSecundario]
+        );
+        
+        const flowTuto = addKeyword(['telenchana_ii', 'telenchana_uu']).addAnswer(
+            [
+                '🙌 Aquí encontras un ejemplo rapido',
+                'https://bot-whatsapp.netlify.app/docs/example/',
+                '\n*2* Para siguiente paso.',
+            ],
+            null,
+            null,
+            [flowSecundario]
+        );
+        
+        const flowGracias = addKeyword(['gg_kk_oo', 'oo_kk_ll']).addAnswer(
+            [
+                '🚀 Puedes aportar tu granito de arena a este proyecto',
+                '[*opencollective*] https://opencollective.com/bot-whatsapp',
+                '[*buymeacoffee*] https://www.buymeacoffee.com/leifermendez',
+                '[*patreon*] https://www.patreon.com/leifermendez',
+                '\n*2* Para siguiente paso.',
+            ],
+            null,
+            null,
+            [flowSecundario]
+        );
+        
+        const flowDiscord = addKeyword(['discord']).addAnswer(
+            ['🤪 Únete al discord', 'https://link.codigoencasa.com/DISCORD', '\n*2* Para siguiente paso.'],
+            null,
+            null,
+            [flowSecundario]
+        );
+        
+        const flowPrincipal = addKeyword(['ff_ee', 'yy_rr', 'hh_ll'])
+            .addAnswer('🙌 Hola bienvenido a este *Chatbot*')
+            .addAnswer(
+                [
+                    'Hola estamos creando un chat bot con node.js',
+                    '👉  Soy Alex Telenchana',
+                    '👉  Estudiante de la Universidad Central del Ecuador',
+                    '👉 Me gusta mucho Medicina ',
+                ],
+                null,
+                null,
+                [flowDocs, flowGracias, flowTuto, flowDiscord]
+            );
+        
+        const main = async () => {
+            const adapterDB = new MockAdapter();
+            const adapterFlow = createFlow([flowPrincipal]);
+            const adapterProvider = createProvider(BaileysProvider);
+        
+            const bot = createBot({
+                flow: adapterFlow,
+                provider: adapterProvider,
+                database: adapterDB,
+            });
+        
+           
+            // Configurar el servidor Express
+            app.use(express.json());
+        
+            // Ruta para servir el QR code
+            app.get('/qr', (req, res) => {
+                const qrPath = path.join(__dirname, 'bot.qr.png');
+                if (fs.existsSync(qrPath)) {
+                    res.sendFile(qrPath);
+                } else {
+                    res.status(404).json({ error: 'QR code no encontrado' });
+                }
+            });
+        
+            // Ruta para manejar solicitudes POST para enviar mensajes
+            app.post('/send-message', async (req, res) => { 
 
-const http = require('http');
-const { createBot, createProvider, createFlow, addKeyword } = require('@bot-whatsapp/bot');
-const QRPortalWeb = require('@bot-whatsapp/portal');
-const BaileysProvider = require('@bot-whatsapp/provider/baileys');
-const MockAdapter = require('@bot-whatsapp/database/mock');
-
-const flowSecundario = addKeyword(['2', 'siguiente']).addAnswer(['📄 Aquí tenemos el flujo secundario'])
-
-const flowDocs = addKeyword(['doc', 'documentacion', 'documentación']).addAnswer(
-    [
-        '📄 Aquí encontras las documentación recuerda que puedes mejorarla',
-        'https://bot-whatsapp.netlify.app/',
-        '\n*2* Para siguiente paso.',
-    ],
-    null,
-    null,
-    [flowSecundario]
-)
-
-const flowTuto = addKeyword(['telenchana_ii', 'telenchana_uu']).addAnswer(
-    [
-        '🙌 Aquí encontras un ejemplo rapido',
-        'https://bot-whatsapp.netlify.app/docs/example/',
-        '\n*2* Para siguiente paso.',
-    ],
-    null,
-    null,
-    [flowSecundario]
-)
-
-const flowGracias = addKeyword(['gg_kk_oo', 'oo_kk_ll']).addAnswer(
-    [
-        '🚀 Puedes aportar tu granito de arena a este proyecto',
-        '[*opencollective*] https://opencollective.com/bot-whatsapp',
-        '[*buymeacoffee*] https://www.buymeacoffee.com/leifermendez',
-        '[*patreon*] https://www.patreon.com/leifermendez',
-        '\n*2* Para siguiente paso.',
-    ],
-    null,
-    null,
-    [flowSecundario]
-)
-
-const flowDiscord = addKeyword(['discord']).addAnswer(
-    ['🤪 Únete al discord', 'https://link.codigoencasa.com/DISCORD', '\n*2* Para siguiente paso.'],
-    null,
-    null,
-    [flowSecundario]
-)
-
-const flowPrincipal = addKeyword(['ff_ee', 'yy_rr', 'hh_ll'])
-    .addAnswer('🙌 Hola bienvenido a este *Chatbot*')
-    .addAnswer(
-        [
-            'Hola estamos creando un chat bot con node.js',
-            '👉  Soy Alex Telenchana',
-            '👉  Estudiante de la Universidad Central del Ecuador',
-            '👉 Me gusta mucho Medicina ',
-        ],
-        null,
-        null,
-        [flowDocs, flowGracias, flowTuto, flowDiscord]
-    )
-
-
-const main = async () => {
-    const adapterDB = new MockAdapter();
-    const adapterFlow = createFlow([flowPrincipal]);
-    const adapterProvider = createProvider(BaileysProvider);
-
-    const bot = createBot({
-        flow: adapterFlow,
-        provider: adapterProvider,
-        database: adapterDB,
-    });
-
-    QRPortalWeb();
-
-    // Crear un servidor HTTP para manejar solicitudes POST
-    const server = http.createServer((req, res) => {
-        console.log('Solicitud recibida:', req.method, req.url);
         if (req.method === 'POST' && req.url === '/send-message') {
             let body = '';
 
@@ -119,18 +133,18 @@ if (urlMatches && urlMatches.length > 0) {
                 }
             });
             
-        } else {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Not found' }));
-        }
-    });
+        }  
 
-    server.listen(3001, () => {
-        console.log('Servidor HTTP corriendo en el puerto 3001');
-    });
-};
-
-main();
+            });
+        
+            // Iniciar el servidor Express
+            app.listen(3001, () => {
+                console.log('Servidor HTTP corriendo en el puerto 3001');
+            });
+        };
+        
+        main();
+         
 
 /**
  * Method Parameters
